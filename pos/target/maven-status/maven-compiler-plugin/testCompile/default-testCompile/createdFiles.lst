@@ -1,0 +1,5 @@
+com\aditya\pos\AppTest.class
+com\aditya\pos\config\QaConfig.class
+com\aditya\pos\service\BrandTest.class
+com\aditya\pos\config\AbstractUnit.class
+com\aditya\pos\service\InventoryServiceTest.class

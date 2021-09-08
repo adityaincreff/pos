@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>OrderService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">pos</a> &gt; <a href="index.source.html" class="el_package">com.increff.pos.service</a> &gt; <span class="el_source">OrderService.java</span></div><h1>OrderService.java</h1><pre class="source lang-java linenums">package com.increff.pos.service;
+
+import com.increff.pos.dao.InventoryDao;
+import com.increff.pos.dao.OrderHistoryDao;
+import com.increff.pos.dao.OrderItemDao;
+import com.increff.pos.dao.ProductDao;
+import com.increff.pos.model.OrderData;
+import com.increff.pos.model.OrderForm;
+import com.increff.pos.pojo.InventoryPojo;
+import com.increff.pos.pojo.OrderHistoryPojo;
+import com.increff.pos.pojo.OrderItemPojo;
+import com.increff.pos.pojo.ProductPojo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+@Service
+@Transactional
+
+<span class="fc" id="L23">public class OrderService {</span>
+	@Autowired
+	private OrderHistoryDao orderHistoryDao;
+	@Autowired
+	private OrderItemDao orderItemDao;
+	@Autowired
+	private ProductDao productDao;
+	@Autowired
+	private InventoryDao inventoryDao;
+
+
+
+	public List&lt;OrderHistoryPojo&gt; getAll() {
+<span class="nc" id="L36">		return orderHistoryDao.getall();</span>
+
+	}
+
+	public List&lt;OrderData&gt; getByOrderId(int id)  throws ApiException{
+<span class="nc" id="L41">		List&lt;OrderItemPojo&gt; items = orderItemDao.select(id);</span>
+<span class="nc bnc" id="L42" title="All 2 branches missed.">		if(items == null )</span>
+		{
+<span class="nc" id="L44">			throw new ApiException(&quot;Order does not exists&quot;);</span>
+		}
+<span class="nc" id="L46">		return convert(items);</span>
+	}
+
+	private List&lt;OrderData&gt; convert(List&lt;OrderItemPojo&gt; items) {
+<span class="nc" id="L50">		List&lt;OrderData&gt; ans = new ArrayList&lt;&gt;();</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">		for(OrderItemPojo i : items)</span>
+		{
+<span class="nc" id="L53">			OrderData orderData= new OrderData();</span>
+<span class="nc" id="L54">			orderData.setMrp(i.getSellingPrice());</span>
+<span class="nc" id="L55">			orderData.setName(productDao.select(i.getProductPojoId()).getName());</span>
+<span class="nc" id="L56">			orderData.setQuantity(i.getQuantity());</span>
+<span class="nc" id="L57">			ans.add(orderData);</span>
+<span class="nc" id="L58">		}</span>
+<span class="nc" id="L59">		return  ans;</span>
+
+
+	}
+	@Transactional(rollbackFor = ApiException.class)
+	public void add(List&lt;OrderForm&gt; orderForms) throws ApiException {
+<span class="nc" id="L65">		List&lt;OrderItemPojo&gt; orderItemPojoList = check(orderForms);</span>
+<span class="nc" id="L66">		OrderHistoryPojo orderHistoryPojo = convert();</span>
+<span class="nc" id="L67">		int id=orderHistoryDao.add(orderHistoryPojo);</span>
+<span class="nc bnc" id="L68" title="All 2 branches missed.">		for(OrderItemPojo orderItemPojo : orderItemPojoList)</span>
+		{
+<span class="nc" id="L70">			orderItemPojo.setOrderPojoId(id);</span>
+<span class="nc" id="L71">			orderItemDao.add(orderItemPojo);</span>
+<span class="nc" id="L72">		}</span>
+		
+<span class="nc" id="L74">	}</span>
+
+	private OrderHistoryPojo convert() {
+<span class="nc" id="L77">		OrderHistoryPojo history = new OrderHistoryPojo();</span>
+<span class="nc" id="L78">		LocalDateTime now = LocalDateTime.now();</span>
+<span class="nc" id="L79">		history.setDate(now);</span>
+<span class="nc" id="L80">		return history;</span>
+	}
+
+	private List&lt;OrderItemPojo&gt; check(List&lt;OrderForm&gt; orderForms) throws ApiException {
+<span class="nc" id="L84">		List&lt;OrderItemPojo&gt; ans = new ArrayList&lt;OrderItemPojo&gt;();</span>
+<span class="nc bnc" id="L85" title="All 2 branches missed.">		for(OrderForm form  : orderForms)</span>
+		{
+<span class="nc" id="L87">			OrderItemPojo q= new OrderItemPojo();</span>
+<span class="nc" id="L88">			ProductPojo product= productDao.select(form.getBarcode());</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">			if(product == null)</span>
+			{
+<span class="nc" id="L91">				throw new ApiException(&quot;No such product exists&quot;);</span>
+			}
+<span class="nc" id="L93">			q.setProductPojoId(product.getProduct_id());</span>
+<span class="nc" id="L94">			InventoryPojo i = inventoryDao.select(product.getProduct_id());</span>
+<span class="nc" id="L95">					q.setQuantity(form.getQuantity());</span>
+<span class="nc bnc" id="L96" title="All 2 branches missed.">			if(i== null)</span>
+			{
+<span class="nc" id="L98">				throw new ApiException((&quot;No inventory exists for this product&quot;));</span>
+			}
+<span class="nc bnc" id="L100" title="All 2 branches missed.">			if (form.getQuantity() &gt; i.getQuantity())</span>
+			{
+<span class="nc" id="L102">				throw new ApiException((&quot;Selected quantity cannot be greater than inventory&quot;));</span>
+			}
+<span class="nc" id="L104">			q.setOrderPojoId(1);</span>
+<span class="nc" id="L105">			q.setSellingPrice(product.getMrp());</span>
+<span class="nc" id="L106">			inventoryDao.updateinventory(i.getProduct_id(),form.getQuantity());</span>
+<span class="nc" id="L107">			ans.add(q);</span>
+<span class="nc" id="L108">		}</span>
+<span class="nc" id="L109">		return ans;</span>
+	}
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.5.201910111838</span></div></body></html>
